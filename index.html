@@ -1053,130 +1053,285 @@ function generatePDF() {
   }
 
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
-  const pageW = 210;
-  const margin = 15;
-  let y = 15;
-
-  function addText(text, x, yPos, opts) {
-    opts = opts || {};
-    var fontSize = opts.fontSize || 10;
-    var color = opts.color || '#000000';
-    var bold = opts.bold || false;
-    var maxWidth = opts.maxWidth || (pageW - margin * 2);
-    doc.setFontSize(fontSize);
-    if (color === '#000000') doc.setTextColor(0, 0, 0);
-    else if (color === '#ffffff') doc.setTextColor(255, 255, 255);
-    else if (color === '#2d9cdb') doc.setTextColor(45, 156, 219);
-    else if (color === '#666666') doc.setTextColor(100, 100, 100);
-    else doc.setTextColor(60, 60, 60);
-    if (bold) doc.setFont('helvetica', 'bold');
-    else doc.setFont('helvetica', 'normal');
-    var lines = doc.splitTextToSize(text, maxWidth);
-    doc.text(lines, x, yPos);
-    return yPos + (lines.length * fontSize * 0.45);
+  const W = 210, H = 297, margin = 18, cW = 210 - 18 * 2;
+  const WHT = [255,255,255], BLU = [45,156,219];
+  const GDK = [40,40,40], GMD = [100,100,100], GLT = [245,246,248], GBR = [218,220,226], GDR = [235,236,238];
+  const dateStr = document.getElementById('currentDate').textContent;
+  const email = document.getElementById('clientEmail').value.trim();
+  const phone = document.getElementById('clientPhone').value.trim();
+  const activity = document.getElementById('clientActivity').value.trim();
+  const notes = document.getElementById('clientNotes').value.trim();
+  const budget = document.getElementById('budget').value;
+  const delai = document.getElementById('delai').value;
+  const brandingNotes = document.getElementById('brandingNotes').value.trim();
+  const logoImg = document.querySelector('img.logo');
+  const logoData = logoImg ? logoImg.src : null;
+  const logoRatio = (logoImg && logoImg.naturalHeight > 0) ? (logoImg.naturalWidth / logoImg.naturalHeight) : 3;
+  function addLogo(x, y, targetH) {
+    if (!logoData) return;
+    const w = targetH * logoRatio;
+    try { doc.addImage(logoData, 'PNG', x, y, w, targetH, undefined, 'FAST'); } catch(e){}
+    return w;
   }
 
-  // Header block
-  doc.setFillColor(26, 26, 46);
-  doc.roundedRect(margin, y, pageW - margin * 2, 22, 3, 3, 'F');
-  addText('aura.360', margin + 5, y + 9, { fontSize: 16, color: '#ffffff', bold: true });
-  addText('agency', margin + 5, y + 16, { fontSize: 11, color: '#2d9cdb', bold: true });
-  addText(document.getElementById('currentDate').textContent, pageW - margin - 2, y + 6, { fontSize: 8, color: '#666666' });
-  addText('FICHE DE BESOINS', pageW - margin - 2, y + 14, { fontSize: 15, color: '#ffffff', bold: true });
-  y += 28;
+  // ── PAGE 1: COVER ──────────────────────────────────────────────────────────
+  doc.setFillColor(...WHT);
+  doc.rect(0, 0, W, H, 'F');
+  doc.setFillColor(...BLU);
+  doc.rect(0, 0, W, 3, 'F');
 
-  // Separator
-  doc.setDrawColor(45, 156, 219);
+  addLogo(margin, 26, 22);
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.setTextColor(...BLU);
+  doc.text('AURA.360 AGENCY', margin, 60);
+
+  doc.setDrawColor(...GBR);
   doc.setLineWidth(0.5);
-  doc.line(margin, y, pageW - margin, y);
-  y += 8;
+  doc.line(margin, 64, W - margin, 64);
 
-  // Client info box
-  doc.setFillColor(248, 249, 250);
-  doc.roundedRect(margin, y, pageW - margin * 2, 40, 3, 3, 'F');
-  addText('INFORMATIONS CLIENT', margin + 5, y + 7, { fontSize: 10, bold: true });
-  var email = document.getElementById('clientEmail').value;
-  var phone = document.getElementById('clientPhone').value;
-  var activity = document.getElementById('clientActivity').value;
-  var notes = document.getElementById('clientNotes').value;
-  var infoY = y + 14;
-  addText('Nom / Entreprise : ' + name, margin + 5, infoY, { fontSize: 9 });
-  if (email) { infoY += 5; addText('Email : ' + email, margin + 5, infoY, { fontSize: 9 }); }
-  if (phone) { infoY += 5; addText('Téléphone : ' + phone, margin + 5, infoY, { fontSize: 9 }); }
-  if (activity) { infoY += 5; addText('Secteur : ' + activity, margin + 5, infoY, { fontSize: 9 }); }
-  y += 46;
+  doc.setTextColor(...GDK);
+  doc.setFontSize(42);
+  doc.text('FICHE DE', margin, 108);
+  doc.text('BESOINS', margin, 130);
 
-  // Budget & Délai
-  var budget = document.getElementById('budget').value;
-  var delai = document.getElementById('delai').value;
-  if (budget || delai) {
-    doc.setFillColor(255, 248, 225);
-    doc.roundedRect(margin, y, pageW - margin * 2, 16, 3, 3, 'F');
-    var bY = y + 6;
-    if (budget) { addText('Budget estimé : ' + budget, margin + 5, bY, { fontSize: 9 }); bY += 5; }
-    if (delai) { addText('Délai souhaité : ' + delai, margin + 5, bY, { fontSize: 9 }); }
-    y += 22;
-  }
+  doc.setFillColor(...BLU);
+  doc.roundedRect(margin, 136, 44, 2, 1, 1, 'F');
 
-  // Categories
-  var catData = [
-    { name: '1. Identité visuelle', key: 'identite', color: [227, 242, 253] },
-    { name: '2. Réseaux sociaux & contenu digital', key: 'social', color: [252, 228, 236] },
-    { name: '3. Marketing & visibilité locale', key: 'marketing', color: [232, 245, 233] },
-    { name: '4. Supports imprimés', key: 'print', color: [255, 243, 224] },
-    { name: '5. Site internet', key: 'site', color: [243, 229, 245] },
-    { name: '6. Production média', key: 'media', color: [224, 242, 241] },
-    { name: '7. Positionnement de marque', key: 'branding', color: [252, 228, 236] },
-    { name: '8. Cibles du client', key: 'cibles', color: [232, 234, 246] },
-  ];
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(...GMD);
+  doc.text('CLIENT', margin, 160);
 
-  catData.forEach(function(cat) {
-    var items = Array.from(document.querySelectorAll('[name="' + cat.key + '"]:checked')).map(function(cb) { return cb.value; });
-    if (items.length === 0) return;
-    if (y > 255) { doc.addPage(); y = 15; }
-    doc.setFillColor(cat.color[0], cat.color[1], cat.color[2]);
-    doc.roundedRect(margin, y, pageW - margin * 2, 10, 2, 2, 'F');
-    addText(cat.name, margin + 5, y + 6.5, { fontSize: 10, bold: true });
-    y += 14;
-    items.forEach(function(item) {
-      if (y > 275) { doc.addPage(); y = 15; }
-      addText('  ' + item, margin + 5, y, { fontSize: 9 });
-      y += 5.5;
-    });
-    y += 4;
-  });
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(20);
+  doc.setTextColor(...GDK);
+  const cLines = doc.splitTextToSize(name.toUpperCase(), cW);
+  doc.text(cLines, margin, 170);
 
-  // Branding notes
-  var brandingNotes = document.getElementById('brandingNotes').value.trim();
-  if (brandingNotes) {
-    if (y > 250) { doc.addPage(); y = 15; }
-    doc.setFillColor(248, 249, 250);
-    doc.roundedRect(margin, y, pageW - margin * 2, 18, 3, 3, 'F');
-    addText('Notes complémentaires :', margin + 5, y + 6, { fontSize: 9, bold: true });
-    var bnLines = doc.splitTextToSize(brandingNotes, pageW - margin * 2 - 10);
-    addText(bnLines, margin + 5, y + 11, { fontSize: 9 });
-    y += 22;
-  }
-
-  // Footer on all pages
-  var pageCount = doc.getNumberOfPages();
-  for (var i = 1; i <= pageCount; i++) {
-    doc.setPage(i);
-    doc.setFontSize(8);
-    doc.setTextColor(150, 150, 150);
+  if (activity) {
     doc.setFont('helvetica', 'normal');
-    doc.text('Aura.360 Agency — Fiche de besoins — Page ' + i + '/' + pageCount, pageW / 2, 292, { align: 'center' });
-    doc.text("Document généré automatiquement — À retourner à l'agence", pageW / 2, 296, { align: 'center' });
+    doc.setFontSize(10);
+    doc.setTextColor(...GMD);
+    doc.text(activity, margin, 180);
   }
 
-  // Save
-  var fileName = 'Fiche_Besoins_' + name.replace(/[^a-zA-Z0-9]/g, '_') + '_' + now.toISOString().slice(0,10) + '.pdf';
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(...GMD);
+  doc.text(dateStr, margin, H - 42);
+
+  doc.setDrawColor(...GBR);
+  doc.setLineWidth(0.5);
+  doc.line(margin, H - 36, W - margin, H - 36);
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8);
+  doc.setTextColor(...BLU);
+  doc.text('aura.360', margin, H - 28);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...GMD);
+  doc.text('  Agence de communication créative', margin + 17, H - 28);
+
+  doc.setFontSize(7);
+  doc.setTextColor(...GMD);
+  doc.text('Document confidentiel — Préparé exclusivement pour ' + name, margin, H - 22);
+
+  // ── PAGE 2+: CONTENT ───────────────────────────────────────────────────────
+  doc.addPage();
+  let y = 0;
+
+  function contentHeader() {
+    doc.setFillColor(...WHT);
+    doc.rect(0, 0, W, 26, 'F');
+    doc.setFillColor(...BLU);
+    doc.rect(0, 0, W, 3, 'F');
+    doc.setDrawColor(...GBR);
+    doc.setLineWidth(0.5);
+    doc.line(0, 26, W, 26);
+    const lhH = 12; addLogo(margin, (26 - lhH) / 2, lhH);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(6.5);
+    doc.setTextColor(...BLU);
+    doc.text('FICHE DE BESOINS', W - margin, 11, { align: 'right' });
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(6.5);
+    doc.setTextColor(150, 150, 150);
+    doc.text(dateStr, W - margin, 17, { align: 'right' });
+  }
+
+  function miniHeader() {
+    doc.setFillColor(...WHT);
+    doc.rect(0, 0, W, 11, 'F');
+    doc.setFillColor(...BLU);
+    doc.rect(0, 0, W, 2, 'F');
+    doc.setDrawColor(...GBR);
+    doc.setLineWidth(0.5);
+    doc.line(0, 11, W, 11);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(6);
+    doc.setTextColor(...GMD);
+    doc.text('AURA.360 — FICHE DE BESOINS (suite)', margin, 7.5);
+  }
+
+  function sectionTitle(title, yPos) {
+    doc.setFillColor(...GDR);
+    doc.roundedRect(margin, yPos, cW, 9, 1.5, 1.5, 'F');
+    doc.setFillColor(...BLU);
+    doc.rect(margin, yPos, 3, 9, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8.5);
+    doc.setTextColor(...GDK);
+    doc.text(title.toUpperCase(), margin + 7, yPos + 5.8);
+    return yPos + 13;
+  }
+
+  contentHeader();
+  y = 34;
+
+  // ── Client info ────────────────────────────────────────────────────────────
+  y = sectionTitle('Informations client', y);
+  const rows = [[' Entreprise :', name], email && [' Email :', email], phone && [' Téléphone :', phone], activity && [' Secteur :', activity]].filter(Boolean);
+  const notesW = notes ? doc.splitTextToSize(notes, cW - 16) : [];
+  const cardH = rows.length * 7 + (notes ? notesW.length * 5 + 12 : 0) + 10;
+
+  doc.setFillColor(...GLT);
+  doc.roundedRect(margin, y, cW, cardH, 2, 2, 'F');
+  doc.setDrawColor(...GBR);
+  doc.setLineWidth(0.25);
+  doc.roundedRect(margin, y, cW, cardH, 2, 2, 'S');
+
+  let cy = y + 8;
+  rows.forEach(([label, val]) => {
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(7); doc.setTextColor(...GMD);
+    doc.text(label, margin + 5, cy);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(...GDK);
+    doc.text(String(val), margin + 34, cy);
+    cy += 7;
+  });
+  if (notes) {
+    cy += 2;
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(7); doc.setTextColor(...GMD);
+    doc.text(' Contexte :', margin + 5, cy); cy += 5;
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(...GDK);
+    doc.text(notesW, margin + 5, cy);
+  }
+  y += cardH + 7;
+
+  // ── Budget & Délai ─────────────────────────────────────────────────────────
+  if (budget || delai) {
+    y = sectionTitle('Budget & Délai estimés', y);
+    const hw = (cW - 6) / 2;
+    if (budget) {
+      doc.setFillColor(...GLT); doc.roundedRect(margin, y, hw, 22, 2, 2, 'F');
+      doc.setDrawColor(...BLU); doc.setLineWidth(0.25); doc.roundedRect(margin, y, hw, 22, 2, 2, 'S');
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(6.5); doc.setTextColor(...BLU);
+      doc.text('BUDGET ESTIMÉ', margin + 5, y + 7);
+      doc.setFontSize(10); doc.setTextColor(...GDK); doc.text(budget, margin + 5, y + 16);
+    }
+    if (delai) {
+      const dx = budget ? margin + hw + 6 : margin;
+      doc.setFillColor(...GLT); doc.roundedRect(dx, y, hw, 22, 2, 2, 'F');
+      doc.setDrawColor(60, 150, 60); doc.setLineWidth(0.25); doc.roundedRect(dx, y, hw, 22, 2, 2, 'S');
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(6.5); doc.setTextColor(50, 140, 50);
+      doc.text('DÉLAI SOUHAITÉ', dx + 5, y + 7);
+      doc.setFontSize(10); doc.setTextColor(...GDK); doc.text(delai, dx + 5, y + 16);
+    }
+    y += 28;
+  }
+
+  // ── Services ───────────────────────────────────────────────────────────────
+  const catDefs = [
+    { name: 'Identité visuelle', key: 'identite', dot: BLU },
+    { name: 'Réseaux sociaux & contenu digital', key: 'social', dot: [219,68,55] },
+    { name: 'Marketing & visibilité locale', key: 'marketing', dot: [52,168,83] },
+    { name: 'Supports imprimés', key: 'print', dot: [251,188,5] },
+    { name: 'Site internet', key: 'site', dot: [103,58,183] },
+    { name: 'Production média', key: 'media', dot: [0,172,193] },
+    { name: 'Positionnement de marque', key: 'branding', dot: [233,30,99] },
+    { name: 'Cibles du client', key: 'cibles', dot: [121,85,72] },
+  ];
+  const selected = catDefs.map(c => ({ ...c, items: Array.from(document.querySelectorAll('[name="' + c.key + '"]:checked')).map(cb => cb.value) })).filter(c => c.items.length > 0);
+
+  if (selected.length > 0) {
+    y += 2;
+    y = sectionTitle('Services sélectionnés', y);
+    selected.forEach(cat => {
+      const rows2 = Math.ceil(cat.items.length / 2);
+      const neededH = 10 + rows2 * 7 + 6;
+      if (y + neededH > 278) { doc.addPage(); miniHeader(); y = 18; }
+
+      doc.setFillColor(...GLT);
+      doc.roundedRect(margin, y, cW, 9, 1.5, 1.5, 'F');
+      doc.setFillColor(...cat.dot);
+      doc.circle(margin + 5.5, y + 4.5, 1.8, 'F');
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(...GDK);
+      doc.text(cat.name, margin + 11, y + 5.8);
+      const badge = cat.items.length + ' service' + (cat.items.length > 1 ? 's' : '');
+      const bw = doc.getTextWidth(badge) + 8;
+      doc.setFillColor(...cat.dot);
+      doc.roundedRect(W - margin - bw - 1, y + 1.8, bw + 2, 5.5, 1, 1, 'F');
+      doc.setFontSize(6); doc.setTextColor(...WHT);
+      doc.text(badge, W - margin - bw / 2, y + 5.6, { align: 'center' });
+      y += 11;
+
+      const hw2 = (cW - 8) / 2;
+      cat.items.forEach((item, idx) => {
+        if (y > 278) { doc.addPage(); miniHeader(); y = 18; }
+        const col = idx % 2;
+        const row = Math.floor(idx / 2);
+        const ix = col === 0 ? margin + 3 : margin + hw2 + 11;
+        const iy = y + row * 7;
+        doc.setFillColor(...cat.dot);
+        doc.circle(ix + 2, iy - 1.2, 1, 'F');
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(...GDK);
+        const iLines = doc.splitTextToSize(item, hw2 - 6);
+        doc.text(iLines[0], ix + 5.5, iy);
+      });
+      y += rows2 * 7 + 5;
+    });
+  }
+
+  // ── Branding notes ─────────────────────────────────────────────────────────
+  if (brandingNotes) {
+    if (y > 255) { doc.addPage(); miniHeader(); y = 18; }
+    y += 3;
+    y = sectionTitle('Notes & Recommandations', y);
+    const bnL = doc.splitTextToSize(brandingNotes, cW - 14);
+    const bnH = bnL.length * 5 + 12;
+    doc.setFillColor(248, 249, 255);
+    doc.roundedRect(margin, y, cW, bnH, 2, 2, 'F');
+    doc.setDrawColor(...BLU); doc.setLineWidth(0.25);
+    doc.roundedRect(margin, y, cW, bnH, 2, 2, 'S');
+    doc.setFillColor(...BLU);
+    doc.rect(margin, y, 3, bnH, 'F');
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(...GDK);
+    doc.text(bnL, margin + 8, y + 8);
+    y += bnH + 6;
+  }
+
+  // ── Footer all content pages ───────────────────────────────────────────────
+  const pageCount = doc.getNumberOfPages();
+  for (let i = 2; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFillColor(244, 245, 247);
+    doc.rect(0, H - 12, W, 12, 'F');
+    doc.setDrawColor(...GBR); doc.setLineWidth(0.25);
+    doc.line(0, H - 12, W, H - 12);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(6.5); doc.setTextColor(...BLU);
+    doc.text('aura.360', margin, H - 5);
+    doc.setFont('helvetica', 'normal'); doc.setTextColor(...GMD);
+    doc.text(' agency — Document confidentiel', margin + 14, H - 5);
+    doc.text('Page ' + (i - 1) + ' / ' + (pageCount - 1), W - margin, H - 5, { align: 'right' });
+  }
+
+  const fileName = 'FicheBesoins_' + name.replace(/[^a-zA-Z0-9]/g, '_') + '_' + now.toISOString().slice(0,10) + '.pdf';
   doc.save(fileName);
 
-  // Toast
-  var toast = document.getElementById('toast');
+  const toast = document.getElementById('toast');
   toast.classList.add('show');
-  setTimeout(function() { toast.classList.remove('show'); }, 3000);
+  setTimeout(() => toast.classList.remove('show'), 3000);
 }
 
 updateCounts();
